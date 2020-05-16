@@ -83,8 +83,8 @@ class Routines {
         _params.putAll(args)
     }
 
-    fun <T : Routine> addRoutine(r: T) {
-        _routines.add(r)
+    fun addRoutine5(r: Any) {
+        _routines.add(r as Routine)
     }
 
     fun execute() {

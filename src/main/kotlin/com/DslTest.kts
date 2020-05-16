@@ -15,7 +15,9 @@ routines {
             "../generated/$className.kt"
         }
 
-        addRoutineParams("{{ClassName}}" to className)
+        templateParams {
+            this["ClassName"] = className.get()
+        }
 
         executableIf { true }
 
@@ -28,11 +30,23 @@ routines {
             "../generated/tests/$testClassName.kt"
         }
 
-        addRoutineParams("{{TestClassName}}" to testClassName)
+        templateParams {
+            this["TestClassName"] = testClassName.get()
+        }
 
         executableIf { true }
 
         fromTemplate("../../../../templates/ExampleTestsTemplate.kt")
         saveTo(savePath)
     }
+
+//    insertIntoFile {
+//        appendFile("Te.txt")
+//        insertFrom(
+//            InsertFromSource.sourceFromTemplate(
+//                templateInput = "Hello, {{name}}".toByteArray().inputStream(),
+//                templateParams = mapOf("name" to "Sasha")
+//            )
+//        )
+//    }
 }

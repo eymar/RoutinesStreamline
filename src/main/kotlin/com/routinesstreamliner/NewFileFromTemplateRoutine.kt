@@ -1,6 +1,7 @@
 package com.routinesstreamliner
 
 import java.io.File
+import java.io.InputStream
 
 class NewFileFromTemplateRoutine(
     parentParams: Map<String, ParamValue> = emptyMap()
@@ -8,6 +9,8 @@ class NewFileFromTemplateRoutine(
 
     private var templatePath = ""
     private var savePath: String = ""
+    private var templateEngineFactory: TemplatesEngineFactory<String> = TemplatesEngineFactory.mustacheFactory()
+    private var templateParams: HashMap<String, String>.() -> Unit = { }
 
     fun fromTemplate(path: String) {
         this.templatePath = path
@@ -17,25 +20,25 @@ class NewFileFromTemplateRoutine(
         savePath = path.get()
     }
 
+    fun useTemplatesEngine(factoryFunction: (templateSource: InputStream) -> TemplatesEngine<String>) {
+        templateEngineFactory = TemplatesEngineFactory.custom(factoryFunction)
+    }
+
+    fun templateParams(block: HashMap<String, String>.() -> Unit) {
+        this.templateParams = block
+    }
+
     override fun execute() {
-        val templateFile = File(templatePath)
+        File(templatePath).inputStream().use { rawTemplate ->
+            val params = hashMapOf<String, String>()
+            templateParams(params)
 
-        val templateParamRegex = "\\{\\{.*}}".toRegex()
+            val newFile = File(savePath)
+            newFile.parentFile.mkdirs()
 
-        templateFile.useLines {
-            it.map {
-                var str = it
-                routineParams.asSequence().filter {
-                    it.key.matches(templateParamRegex)
-                }.forEach {
-                    str = str.replace(it.key, it.value.get())
-                }
-                str
-            }.also { lines ->
-                File(savePath).apply {
-                    this.parentFile.mkdirs()
-                }.outputStream().use { fos ->
-                    lines.forEach { line -> fos.write("$line\n".toByteArray()) }
+            templateEngineFactory.create(rawTemplate).execute(params).use { result ->
+                newFile.outputStream().use { fos ->
+                    result.copyTo(fos)
                 }
             }
         }
@@ -52,5 +55,5 @@ class NewFileFromTemplateRoutine(
 fun Routines.newFileFromTemplate(block: NewFileFromTemplateRoutine.() -> Unit) {
     val routine = NewFileFromTemplateRoutine(this.params)
     routine.block()
-    this.addRoutine(routine)
+    this.addRoutine5(routine)
 }
