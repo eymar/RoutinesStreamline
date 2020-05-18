@@ -73,16 +73,18 @@ abstract class Routine(parentParams: Map<String, ParamValue> = emptyMap()) {
 }
 
 class Routines {
-    val params = HashMap<String, ParamValue>()
+    private val _routines = arrayListOf<Routine>()
+    private val _params = HashMap<String, ParamValue>()
 
-    val routines = arrayListOf<Routine>()
+    val params: Map<String, ParamValue> = _params
+    val routines: List<Routine> = _routines
 
     fun globalParams(vararg args: Pair<String, ParamValue>) {
-        params.putAll(args)
+        _params.putAll(args)
     }
 
-    fun <T : Routine> addRoutine(r: T) {
-        routines.add(r)
+    fun addRoutine5(r: Any) {
+        _routines.add(r as Routine)
     }
 
     fun execute() {
