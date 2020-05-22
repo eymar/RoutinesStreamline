@@ -2,9 +2,7 @@ package com.routinesstreamliner
 
 import java.io.*
 
-class InsertIntoFileRoutine(
-    parentParams: Map<String, ParamValue> = emptyMap()
-) : Routine(parentParams) {
+class InsertIntoFileRoutine : Routine() {
 
     private lateinit var insertFromSource: InsertFromSource
 
@@ -95,7 +93,7 @@ interface InsertFromSource {
 
         fun sourceFromTemplate(
             templateInput: InputStream,
-            templateParams: () -> Map<String, String>,
+            templateParams: () -> Map<String, ParamValue<String>>,
             templatesEngineFactory: TemplatesEngineFactory<String> = TemplatesEngineFactory.mustacheFactory()
         ): InsertFromSource {
             return object : InsertFromSource {
@@ -103,7 +101,7 @@ interface InsertFromSource {
                 private val templatesEngine = templatesEngineFactory.create(templateInput)
 
                 override fun inputStream(): InputStream {
-                    return templatesEngine.execute(params())
+                    return templatesEngine.execute(params().mapValues { it.value.get() })
                 }
             }
         }

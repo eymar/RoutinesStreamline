@@ -115,7 +115,7 @@ class InsertIntoFileRoutineTest {
 
         val result = InsertFromSource.sourceFromTemplate(
             templateInput = template.toByteArray().inputStream(),
-            templateParams = { mapOf("name" to "World") }
+            templateParams = { mapOf("name" to ParamValue.constant("World")) }
         ).inputStream().readBytes().let {
             String(it)
         }

@@ -3,14 +3,12 @@ package com.routinesstreamliner
 import java.io.File
 import java.io.InputStream
 
-class NewFileFromTemplateRoutine(
-//    parentParams: Map<String, ParamValue> = emptyMap()
-) : Routine(emptyMap()) {
+class NewFileFromTemplateRoutine : Routine() {
 
     private var templatePath = ""
-    private lateinit var savePath: ParamValue
+    private lateinit var savePath: ParamValue<String>
     private var templateEngineFactory: TemplatesEngineFactory<String> = TemplatesEngineFactory.mustacheFactory()
-    private var templateParams: HashMap<String, String>.() -> Unit = { }
+    private var templateParams: HashMap<String, ParamValue<String>>.() -> Unit = { }
 
     override var _friendlyName: () -> String = {
         "NewFileFromTemplateRoutine | Template = $templatePath"
@@ -20,7 +18,7 @@ class NewFileFromTemplateRoutine(
         this.templatePath = path
     }
 
-    fun saveTo(path: ParamValue) {
+    fun saveTo(path: ParamValue<String>) {
         savePath = path
     }
 
@@ -28,20 +26,22 @@ class NewFileFromTemplateRoutine(
         templateEngineFactory = TemplatesEngineFactory.custom(factoryFunction)
     }
 
-    fun templateParams(block: HashMap<String, String>.() -> Unit) {
+    fun templateParams(block: HashMap<String, ParamValue<String>>.() -> Unit) {
         this.templateParams = block
     }
 
 
     override fun execute() {
         File(templatePath).inputStream().use { rawTemplate ->
-            val params = hashMapOf<String, String>()
+            val params = hashMapOf<String, ParamValue<String>>()
             templateParams(params)
 
             val newFile = File(savePath.get())
             newFile.parentFile.mkdirs()
 
-            templateEngineFactory.create(rawTemplate).execute(params).use { result ->
+            val mappedParams = params.mapValues { it.value.get() }
+
+            templateEngineFactory.create(rawTemplate).execute(mappedParams).use { result ->
                 newFile.outputStream().use { fos ->
                     result.copyTo(fos)
                 }
