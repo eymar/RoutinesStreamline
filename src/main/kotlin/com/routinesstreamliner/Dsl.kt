@@ -17,7 +17,7 @@ open class ParamValue<out T : Any>(
         return value.toString()
     }
 
-    fun <K : Any> map(transform: (T) -> K) : ParamValue<K> {
+    fun <K : Any> map(transform: (T) -> K): ParamValue<K> {
         return ParamValue {
             transform(get())
         }
@@ -54,6 +54,10 @@ abstract class Routine {
         this.javaClass.simpleName
     }
 
+    private val _params = arrayListOf<ParamValue<*>>()
+
+    val paramsDependencies: List<ParamValue<*>> = _params
+
     fun executableIf(explanation: String = "", condition: () -> ParamValue<Boolean>) {
         this.executableIf = condition
     }
@@ -73,54 +77,94 @@ abstract class Routine {
     fun friendlyName(name: () -> String) {
         _friendlyName = name
     }
+
+    fun dependsOn(vararg params: ParamValue<*>) {
+        _params.addAll(params)
+    }
+}
+
+class RoutinesGroup {
+    private val list = arrayListOf<Routine>()
+
+    val routines: List<Routine> = list
+
+    private var _friendlyName: () -> String = {
+        list.joinToString { it.friendlyName() }
+    }
+
+    fun groupFriendlyName(name: () -> String) {
+        _friendlyName = name
+    }
+
+    fun groupFriendlyName(): String = _friendlyName()
+
+    fun execute() {
+        // Init all required params before start
+        list.asSequence().flatMap {
+            it.paramsDependencies.asSequence()
+        }.forEach {
+            it.eagerInit()
+        }
+
+        // Execute
+        list.distinctBy {
+            System.identityHashCode(it)
+        }.forEach {
+            it.execute()
+        }
+    }
+
+    fun add(r: Routine) {
+        list.add(r)
+    }
+
+    fun addAll(list: Collection<Routine>) {
+        list.forEach { add(it) }
+    }
+
+    operator fun Routine.unaryPlus(): Routine {
+        add(this)
+        return this
+    }
 }
 
 class Routines(private val args: Array<String> = emptyArray()) {
-    private val _routines = arrayListOf<Routine>()
-    private val _params = ArrayList<ParamValue<Any>>()
+    private val _routineGroups = arrayListOf<RoutinesGroup>()
 
-    val routines: List<Routine> = _routines
+    private val globalGroup = RoutinesGroup().also {
+        it.groupFriendlyName { "All routines" }
+        _routineGroups.add(it)
+    }
+
+    val routinesGroups: List<RoutinesGroup> = _routineGroups
 
     fun addRoutine(r: Routine) {
-        _routines.add(r)
+        globalGroup.add(r)
     }
 
     fun paramFromStdin(hint: String = "Input value: "): ParamValue<String> {
-        return addGlobalParam { ParamValue.stdin(hint = hint) }
+        return ParamValue.stdin(hint = hint)
     }
 
-    fun <T : Any> addGlobalParam(p: () -> ParamValue<T>): ParamValue<T> {
-        val param = p()
-        _params.add(param)
-        return param
-    }
-
-    fun initAllParams() {
-        _params.forEach { it.eagerInit() }
-    }
-
-    fun execute() {
-        println("\n--- Routines Report ---")
-        println("--- ${routines.size} routine(s) found ---")
-
-        routines.asSequence().filter {
-            println(it.createReportHeader())
-            it.willExecute()
-        }.forEach {
-            it.execute()
-            println(it.createExecutionReport())
+    fun group(groupName: String? = null, configure: RoutinesGroup.() -> Unit) {
+        RoutinesGroup().also {
+            if (groupName != null) {
+                it.groupFriendlyName { groupName }
+            }
+            configure(it)
+            _routineGroups.add(element = it)
+            globalGroup.addAll(it.routines)
         }
     }
 }
 
 private fun printMenuAndGetInput(r: Routines): String {
     println("\n-------------------------")
-    println("Pick routine(s) to execute:")
-    println(" q ::: To exit")
-    println("#0 ::: Execute all routines")
-    println()
-    r.routines.forEachIndexed { index, routine ->
-        println("#${index + 1} ::: ${routine.friendlyName()}")
+    println("Pick routines group to execute:")
+    println("#0 ::: To quit")
+
+    r.routinesGroups.forEachIndexed { index, routine ->
+        println("#${index + 1} ::: ${routine.groupFriendlyName()}")
     }
 
     return ParamValue.stdin("Enter your choice (number): ").get()
@@ -132,16 +176,11 @@ fun routines(args: Array<String> = emptyArray(), block: Routines.() -> Unit) {
         val r = Routines(args)
         r.block()
 
-        val inp =  printMenuAndGetInput(r)
-        if (inp == "q") return
-
+        val inp = printMenuAndGetInput(r)
         val ix: Int? = inp.toIntOrNull() ?: continue
-
         if (ix == 0) {
-            r.initAllParams()
-            r.execute()
-        } else {
-            r.routines[ix!! - 1].execute()
+            return
         }
+        r.routinesGroups[ix!! - 1].execute()
     } while (repeat)
 }

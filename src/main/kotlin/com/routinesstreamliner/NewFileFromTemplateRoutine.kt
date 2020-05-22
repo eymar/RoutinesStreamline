@@ -57,8 +57,9 @@ class NewFileFromTemplateRoutine : Routine() {
     }
 }
 
-fun Routines.newFileFromTemplate(block: NewFileFromTemplateRoutine.() -> Unit) {
+fun Routines.newFileFromTemplate(block: NewFileFromTemplateRoutine.() -> Unit): NewFileFromTemplateRoutine {
     val routine = NewFileFromTemplateRoutine()
     routine.block()
     this.addRoutine(routine)
+    return routine
 }
