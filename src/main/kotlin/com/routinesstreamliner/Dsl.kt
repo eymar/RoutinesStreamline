@@ -24,6 +24,13 @@ class ParamValue(
         return ParamValue { c.get() + v.get() }
     }
 
+    fun eagerInit(): ParamValue {
+        if (value == null) {
+            value = valueGetter()
+        }
+        return this
+    }
+
     companion object {
 
         fun constant(value: String): ParamValue {
@@ -52,6 +59,9 @@ abstract class Routine(parentParams: Map<String, ParamValue> = emptyMap()) {
     protected val routineParams = HashMap<String, ParamValue>(parentParams)
     private var executableIf: (Map<String, ParamValue>) -> Boolean = { true }
 
+    protected open var _friendlyName: () -> String = {
+        this.javaClass.simpleName
+    }
 
     fun executableIf(condition: (Map<String, ParamValue>) -> Boolean) {
         this.executableIf = condition
@@ -70,21 +80,37 @@ abstract class Routine(parentParams: Map<String, ParamValue> = emptyMap()) {
     }
 
     open fun createExecutionReport(): String = ""
+
+    open fun friendlyName(): String = _friendlyName()
+
+    fun friendlyName(name: () -> String) {
+        _friendlyName = name
+    }
 }
 
-class Routines {
+class Routines(private val args: Array<String> = emptyArray()) {
     private val _routines = arrayListOf<Routine>()
-    private val _params = HashMap<String, ParamValue>()
+    private val _params = ArrayList<ParamValue>()
 
-    val params: Map<String, ParamValue> = _params
+    val params: List<ParamValue> = _params
     val routines: List<Routine> = _routines
 
-    fun globalParams(vararg args: Pair<String, ParamValue>) {
-        _params.putAll(args)
+//    fun globalParams(vararg args: Pair<String, ParamValue>) {
+//        _params.putAll(args)
+//    }
+
+    fun addRoutine(r: Routine) {
+        _routines.add(r)
     }
 
-    fun addRoutine5(r: Any) {
-        _routines.add(r as Routine)
+    fun inputParam(p: () -> String): ParamValue {
+        return ParamValue(p).also {
+            _params.add(it)
+        }
+    }
+
+    fun initAllParams() {
+        _params.forEach { it.eagerInit() }
     }
 
     fun execute() {
@@ -99,10 +125,31 @@ class Routines {
             println(it.createExecutionReport())
         }
     }
+
+    companion object {
+        fun stdin(hint: String = "Input value: "): String {
+            print(hint)
+            return readLine()!!
+        }
+    }
 }
 
-fun routines(block: Routines.() -> Unit) {
-    val r = Routines()
+fun routines(args: Array<String> = emptyArray(), block: Routines.() -> Unit) {
+    val r = Routines(args)
+
     r.block()
-    r.execute()
+
+    println("Pick routine(s) to execute:")
+    println("#0 ::: Execute all routines")
+    r.routines.forEachIndexed { index, routine ->
+        println("#${index + 1} ::: ${routine.friendlyName()}")
+    }
+
+    val ix = ParamValue.stdin("Enter your choice (number): ").get().toInt()
+    if (ix == 0) {
+        r.initAllParams()
+        r.execute()
+    } else {
+        r.routines[ix - 1].execute()
+    }
 }

@@ -4,11 +4,14 @@
 
 import com.routinesstreamliner.*
 
-routines {
-    val componentName = ParamValue.stdin("ComponentName = ")
-    val className = ParamValue.combine { componentName + "Component" }
-    val testClassName = ParamValue.combine { className + "Tests" }
-    val templateName = ParamValue.stdin("Template Name value = ")
+routines(args = args) {
+    val componentName = inputParam {
+        Routines.stdin(hint = "Enter component name: ")
+    }
+
+    val className = ParamValue {
+        "${componentName}Component"
+    }
 
     newFileFromTemplate {
         val savePath = ParamValue {
@@ -26,6 +29,10 @@ routines {
     }
 
     newFileFromTemplate {
+        val testClassName = ParamValue {
+            "${className}Tests"
+        }
+
         val savePath = ParamValue {
             "../generated/tests/$testClassName.kt"
         }
@@ -41,11 +48,15 @@ routines {
     }
 
     insertIntoFile {
+        val templateName = inputParam {
+            Routines.stdin("Template Name value = ")
+        }
+
         appendFile("Test.txt")
         insertFrom(
             InsertFromSource.sourceFromTemplate(
                 templateInput = "Hello, {{name}}".toByteArray().inputStream(),
-                templateParams = mapOf("name" to templateName.get())
+                templateParams = { mapOf("name" to templateName.get()) }
             )
         )
     }

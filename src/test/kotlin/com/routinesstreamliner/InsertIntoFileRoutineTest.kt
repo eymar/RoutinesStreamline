@@ -26,7 +26,7 @@ class InsertIntoFileRoutineTest {
         }
 
         assertTrue(routines.routines.size == 1)
-        assertTrue(routines.routines[0] is InsertIntoFileRoutine)
+        assertTrue(routines.routines.first() is InsertIntoFileRoutine)
     }
 
     @Test
@@ -115,7 +115,7 @@ class InsertIntoFileRoutineTest {
 
         val result = InsertFromSource.sourceFromTemplate(
             templateInput = template.toByteArray().inputStream(),
-            templateParams = mapOf("name" to "World")
+            templateParams = { mapOf("name" to "World") }
         ).inputStream().readBytes().let {
             String(it)
         }
