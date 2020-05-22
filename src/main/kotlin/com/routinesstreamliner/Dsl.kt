@@ -1,42 +1,42 @@
 package com.routinesstreamliner
 
-class ParamValue(
-    private val valueGetter: (() -> String)
+open class ParamValue<out T : Any>(
+    private val valueGetter: (() -> T)
 ) {
 
-    constructor(paramValue: ParamValue): this(paramValue::get)
+    private lateinit var value: T
 
-    private var value: String? = null
-
-    fun get() = value ?: valueGetter().also { value = it }
+    fun get(): T = if (::value.isInitialized) {
+        value
+    } else {
+        value = valueGetter()
+        value
+    }
 
     override fun toString(): String {
-        return get()
+        return value.toString()
     }
 
-    operator fun plus(str: String): ParamValue {
-        val c = this
-        return ParamValue { c.get() + str }
+    fun <K : Any> map(transform: (T) -> K) : ParamValue<K> {
+        return ParamValue {
+            transform(get())
+        }
     }
 
-    operator fun plus(v: ParamValue): ParamValue {
-        val c = this
-        return ParamValue { c.get() + v.get() }
+    fun eagerInit(): ParamValue<T> {
+        get()
+        return this
     }
 
     companion object {
 
-        fun constant(value: String): ParamValue {
+        fun <T : Any> constant(value: T): ParamValue<T> {
             return ParamValue { value }
         }
 
-        fun combine(paramValue: () -> ParamValue) : ParamValue {
-            return ParamValue(paramValue())
-        }
-
-        fun stdin(hint: String = "Input value: "): ParamValue {
+        fun stdin(hint: String = "Input value: "): ParamValue<String> {
             return ParamValue {
-                print(hint)
+                print("\n" + hint)
                 readLine()!!
             }
         }
@@ -47,44 +47,56 @@ class ParamValue(
 annotation class RoutinesMarker
 
 @RoutinesMarker
-abstract class Routine(parentParams: Map<String, ParamValue> = emptyMap()) {
+abstract class Routine {
+    private var executableIf: () -> ParamValue<Boolean> = { ParamValue { true } }
 
-    protected val routineParams = HashMap<String, ParamValue>(parentParams)
-    private var executableIf: (Map<String, ParamValue>) -> Boolean = { true }
+    protected open var _friendlyName: () -> String = {
+        this.javaClass.simpleName
+    }
 
-
-    fun executableIf(condition: (Map<String, ParamValue>) -> Boolean) {
+    fun executableIf(explanation: String = "", condition: () -> ParamValue<Boolean>) {
         this.executableIf = condition
     }
 
-    fun willExecute() = this.executableIf(routineParams)
-
-    fun addRoutineParams(vararg args: Pair<String, ParamValue>) {
-        routineParams.putAll(args)
-    }
+    fun willExecute(): Boolean = this.executableIf().get()
 
     abstract fun execute()
 
     open fun createReportHeader(): String {
-        return "\nRoutine [" + this.javaClass.simpleName + "], willExecute = ${willExecute()}"
+        return "\nRoutine [" + friendlyName() + "], willExecute = ${willExecute()}"
     }
 
     open fun createExecutionReport(): String = ""
+
+    open fun friendlyName(): String = _friendlyName()
+
+    fun friendlyName(name: () -> String) {
+        _friendlyName = name
+    }
 }
 
-class Routines {
+class Routines(private val args: Array<String> = emptyArray()) {
     private val _routines = arrayListOf<Routine>()
-    private val _params = HashMap<String, ParamValue>()
+    private val _params = ArrayList<ParamValue<Any>>()
 
-    val params: Map<String, ParamValue> = _params
     val routines: List<Routine> = _routines
 
-    fun globalParams(vararg args: Pair<String, ParamValue>) {
-        _params.putAll(args)
+    fun addRoutine(r: Routine) {
+        _routines.add(r)
     }
 
-    fun addRoutine5(r: Any) {
-        _routines.add(r as Routine)
+    fun paramFromStdin(hint: String = "Input value: "): ParamValue<String> {
+        return addGlobalParam { ParamValue.stdin(hint = hint) }
+    }
+
+    fun <T : Any> addGlobalParam(p: () -> ParamValue<T>): ParamValue<T> {
+        val param = p()
+        _params.add(param)
+        return param
+    }
+
+    fun initAllParams() {
+        _params.forEach { it.eagerInit() }
     }
 
     fun execute() {
@@ -101,8 +113,35 @@ class Routines {
     }
 }
 
-fun routines(block: Routines.() -> Unit) {
-    val r = Routines()
-    r.block()
-    r.execute()
+private fun printMenuAndGetInput(r: Routines): String {
+    println("\n-------------------------")
+    println("Pick routine(s) to execute:")
+    println(" q ::: To exit")
+    println("#0 ::: Execute all routines")
+    println()
+    r.routines.forEachIndexed { index, routine ->
+        println("#${index + 1} ::: ${routine.friendlyName()}")
+    }
+
+    return ParamValue.stdin("Enter your choice (number): ").get()
+}
+
+fun routines(args: Array<String> = emptyArray(), block: Routines.() -> Unit) {
+    val repeat = args.contains("repeat")
+    do {
+        val r = Routines(args)
+        r.block()
+
+        val inp =  printMenuAndGetInput(r)
+        if (inp == "q") return
+
+        val ix: Int? = inp.toIntOrNull() ?: continue
+
+        if (ix == 0) {
+            r.initAllParams()
+            r.execute()
+        } else {
+            r.routines[ix!! - 1].execute()
+        }
+    } while (repeat)
 }

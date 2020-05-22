@@ -1,52 +1,62 @@
 #!/usr/bin/env kscript
 
-@file:DependsOn("com.eymar:routines-streamline:0.0.6")
+@file:DependsOn("com.eymar:routines-streamline:0.0.7")
 
 import com.routinesstreamliner.*
 
-routines {
-    val componentName = ParamValue.stdin("ComponentName = ")
-    val className = ParamValue.combine { componentName + "Component" }
-    val testClassName = ParamValue.combine { className + "Tests" }
-    val templateName = ParamValue.stdin("Template Name value = ")
+routines(args = args) {
+    val componentName = paramFromStdin(hint = "Enter component name: ")
 
-    newFileFromTemplate {
-        val savePath = ParamValue {
-            "../generated/$className.kt"
-        }
-
-        templateParams {
-            this["ClassName"] = className.get()
-        }
-
-        executableIf { true }
-
-        fromTemplate("../../../../templates/ExampleTemplate.kt")
-        saveTo(savePath)
+    val className = componentName.map {
+        "${it}Component"
     }
 
     newFileFromTemplate {
-        val savePath = ParamValue {
-            "../generated/tests/$testClassName.kt"
-        }
-
         templateParams {
-            this["TestClassName"] = testClassName.get()
+            this["ClassName"] = className
         }
 
-        executableIf { true }
+        executableIf { componentName.map { it.length > 1 } }
 
-        fromTemplate("../../../../templates/ExampleTestsTemplate.kt")
-        saveTo(savePath)
+        fromTemplate(path = "../../../../templates/ExampleTemplate.kt")
+
+        saveTo(path = className.map {
+            "../generated/$it.kt"
+        })
+
+        friendlyName { "Create class from ExampleTemplate.kt" }
+    }
+
+    newFileFromTemplate {
+        val testClassName = className.map {
+            "${it}Tests"
+        }
+        templateParams {
+            this["TestClassName"] = testClassName
+        }
+
+        executableIf { componentName.map { it.length > 1 } }
+
+        fromTemplate(path = "../../../../templates/ExampleTestsTemplate.kt")
+
+        saveTo(path = testClassName.map {
+            "../generated/$it.kt"
+        })
+
+        friendlyName { "Create Tests from ExampleTestsTemplate.kt" }
     }
 
     insertIntoFile {
+        val templateName = paramFromStdin(hint = "Template Name value = ")
+
+        executableIf { templateName.map { it.length > 1 } }
+
         appendFile("Test.txt")
-        insertFrom(
-            InsertFromSource.sourceFromTemplate(
-                templateInput = "Hello, {{name}}".toByteArray().inputStream(),
-                templateParams = mapOf("name" to templateName.get())
-            )
-        )
+        insertFrom(source = InsertFromSource.sourceFromTemplate(
+            templateInput = "Hello, {{name}}".toByteArray().inputStream(),
+            templateParams = { mapOf("name" to templateName) }
+        ))
+
+        friendlyName { "Insert Hello-string into Test.txt" }
     }
 }
