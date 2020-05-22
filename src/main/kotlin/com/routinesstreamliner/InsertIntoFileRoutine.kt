@@ -4,13 +4,13 @@ import java.io.*
 
 class InsertIntoFileRoutine : Routine() {
 
-    private lateinit var insertFromSource: InsertFromSource
+    private lateinit var insertFromSource: () -> InsertFromSource
 
     private var appendComment: String? = null
 
     private lateinit var insertionTarget: InsertionTarget
 
-    fun insertFrom(source: InsertFromSource) {
+    fun insertFrom(source: () -> InsertFromSource) {
         this.insertFromSource = source
     }
 
@@ -31,7 +31,7 @@ class InsertIntoFileRoutine : Routine() {
     }
 
     override fun execute() {
-        insertFromSource.inputStream().use { inputStream ->
+        insertFromSource().inputStream().use { inputStream ->
             insertionTarget.useOutputStream { outputStream ->
                 appendComment.takeIf { it != null }?.also {
                     outputStream.write("$it\n".toByteArray())
@@ -108,7 +108,8 @@ interface InsertFromSource {
     }
 }
 
-fun Routines.insertIntoFile(block: InsertIntoFileRoutine.() -> Unit) {
-    val r: Routine = InsertIntoFileRoutine().apply(block)
+fun Routines.insertIntoFile(block: InsertIntoFileRoutine.() -> Unit): InsertIntoFileRoutine {
+    val r = InsertIntoFileRoutine().apply(block)
     this.addRoutine(r)
+    return r
 }

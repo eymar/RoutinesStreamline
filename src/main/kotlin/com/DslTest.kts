@@ -5,13 +5,14 @@
 import com.routinesstreamliner.*
 
 routines(args = args) {
+
     val componentName = paramFromStdin(hint = "Enter component name: ")
 
     val className = componentName.map {
         "${it}Component"
     }
 
-    newFileFromTemplate {
+    val newClass = newFileFromTemplate {
         templateParams {
             this["ClassName"] = className
         }
@@ -24,10 +25,10 @@ routines(args = args) {
             "../generated/$it.kt"
         })
 
-        friendlyName { "Create class from ExampleTemplate.kt" }
+        dependsOn(className, componentName)
     }
 
-    newFileFromTemplate {
+    val newTests = newFileFromTemplate {
         val testClassName = className.map {
             "${it}Tests"
         }
@@ -43,20 +44,37 @@ routines(args = args) {
             "../generated/$it.kt"
         })
 
-        friendlyName { "Create Tests from ExampleTestsTemplate.kt" }
+        dependsOn(className, componentName, testClassName)
     }
 
-    insertIntoFile {
+    val appendFile = insertIntoFile {
         val templateName = paramFromStdin(hint = "Template Name value = ")
 
         executableIf { templateName.map { it.length > 1 } }
 
         appendFile("Test.txt")
-        insertFrom(source = InsertFromSource.sourceFromTemplate(
-            templateInput = "Hello, {{name}}".toByteArray().inputStream(),
-            templateParams = { mapOf("name" to templateName) }
-        ))
+        insertFrom {
+            InsertFromSource.sourceFromTemplate(
+                templateInput = "Hello, {{name}}".toByteArray().inputStream(),
+                templateParams = { mapOf("name" to templateName) }
+            )
+        }
 
-        friendlyName { "Insert Hello-string into Test.txt" }
+        dependsOn(templateName)
+    }
+
+    group(groupName = "New class and tests from templates") {
+        +newClass
+        +newTests
+    }
+
+    group(groupName = "Insert Hello-string into Test.txt") {
+        +appendFile
+    }
+
+    group(groupName = "Common group (all routines)") {
+        +newClass
+        +newTests
+        +appendFile
     }
 }

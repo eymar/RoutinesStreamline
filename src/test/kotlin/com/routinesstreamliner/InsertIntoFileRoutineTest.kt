@@ -16,17 +16,16 @@ class InsertIntoFileRoutineTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `should add itself to Routines list when ext fun called`() {
+    fun `should add itself to Routines group when ext fun called`() {
         val routines = Routines()
-        assertTrue(routines.routines.isEmpty())
 
         routines.insertIntoFile {
             appendFile(path = "")
-            insertFrom(source = InsertFromSource.sourceFromText { "" })
+            insertFrom { InsertFromSource.sourceFromText { "" } }
         }
 
-        assertTrue(routines.routines.size == 1)
-        assertTrue(routines.routines.first() is InsertIntoFileRoutine)
+        assertTrue(routines.routinesGroups.size == 1)
+        assertTrue(routines.routinesGroups.first().routines.first() is InsertIntoFileRoutine)
     }
 
     @Test
@@ -38,7 +37,7 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             appendFile(path = file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { appendText })
+            insertFrom { InsertFromSource.sourceFromText { appendText } }
         }
 
         r.execute()
@@ -64,7 +63,7 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             appendFile(path = file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { appendText })
+            insertFrom { InsertFromSource.sourceFromText { appendText } }
             insertionComment(comment = comment)
         }
 
@@ -90,7 +89,7 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             prependFile(file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { prependText })
+            insertFrom { InsertFromSource.sourceFromText { prependText } }
         }
 
         r.execute()
