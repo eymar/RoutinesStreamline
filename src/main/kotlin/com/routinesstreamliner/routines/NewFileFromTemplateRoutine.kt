@@ -4,79 +4,92 @@ import com.routinesstreamliner.ParamValue
 import com.routinesstreamliner.Routine
 import com.routinesstreamliner.RoutinesBuilder
 import java.io.File
-import java.io.InputStream
 
 class NewFileFromTemplateRoutine : Routine.Builder<Unit>() {
 
-    private var templatePath = ""
     private lateinit var savePath: ParamValue<String>
-    private var templateEngineFactory: TemplatesEngineFactory<String> =
-        TemplatesEngineFactory.mustacheFactory()
-    private var templateParams: HashMap<String, ParamValue<String>>.() -> Unit = { }
+    private lateinit var templateInitialisation: TemplateInitialisation
 
+    private var templateParamsInitialisation: HashMap<String, ParamValue<String>>.() -> Unit = { }
+    private var templateFilePath: String? = null
+
+    @Deprecated(message = "Immutability issue: API has been updated", replaceWith = ReplaceWith("templateBuilder(...)"))
     fun fromTemplate(path: String) {
-        this.templatePath = path
+        templateBuilder {
+            templateSourceFile { path }
+            populateTemplateParams {
+                templateParamsInitialisation(this)
+            }
+        }
+    }
+
+    @Deprecated(message = "Immutability issue: API has been updated", replaceWith = ReplaceWith("templateBuilder(...)"))
+    fun templateParams(block: HashMap<String, ParamValue<String>>.() -> Unit) {
+        this.templateParamsInitialisation = block
+    }
+
+    fun templateBuilder(block: TemplateInitialisation.Builder.() -> Unit) {
+        templateInitialisation = TemplateInitialisation.Builder().apply(block).build()
     }
 
     fun saveTo(path: ParamValue<String>) {
         savePath = path
     }
 
-    fun useTemplatesEngine(factoryFunction: (templateSource: InputStream) -> TemplatesEngine<String>) {
-        templateEngineFactory =
-                TemplatesEngineFactory.custom(factoryFunction)
-    }
-
-    fun templateParams(block: HashMap<String, ParamValue<String>>.() -> Unit) {
-        this.templateParams = block
+    fun saveTo(path: () -> ParamValue<String>) {
+        savePath = path()
     }
 
     override fun build(): Routine<Unit> {
-        val templatePath = templatePath
-        val savePath = savePath
-        val templateParams = templateParams
-        val templateEngineFactory = templateEngineFactory
+        if (!this::templateInitialisation.isInitialized) {
+            val templateParamsInitialisation = templateParamsInitialisation
+            val templateFilePath = templateFilePath
+
+            templateBuilder {
+                requireNotNull(templateFilePath)
+                templateSourceFile { templateFilePath }
+                populateTemplateParams(templateParamsInitialisation)
+            }
+        }
+
+        val templateInitialisation = templateInitialisation
 
         if (friendlyName == null) {
-            friendlyName = this.javaClass.simpleName + " | Template: " + templatePath
+            friendlyName = this.javaClass.simpleName
         }
 
         routineBody {
             execute(
-                templatePath = templatePath,
-                savePath = savePath,
-                templateParams = templateParams,
-                templateEngineFactory = templateEngineFactory
-
+                templateInitialisation = templateInitialisation,
+                savePath = savePath
             )
         }
         return super.build()
     }
 
-    private fun execute(
-        templatePath: String,
-        savePath: ParamValue<String>,
-        templateParams: HashMap<String, ParamValue<String>>.() -> Unit,
-        templateEngineFactory: TemplatesEngineFactory<String>
-    ) {
-        File(templatePath).inputStream().use { rawTemplate ->
-            val params = hashMapOf<String, ParamValue<String>>()
-            templateParams(params)
 
-            val newFile = File(savePath.get())
-            newFile.parentFile.mkdirs()
+    companion object {
+        private fun execute(
+            templateInitialisation: TemplateInitialisation,
+            savePath: ParamValue<String>
+        ) {
+            templateInitialisation.templateSource().use { rawTemplate ->
+                val params = hashMapOf<String, ParamValue<String>>()
+                templateInitialisation.populateTemplateParams(params)
 
-            val mappedParams = params.mapValues { it.value.get() }
+                val newFile = File(savePath.get())
+                newFile.parentFile.mkdirs()
 
-            templateEngineFactory.create(rawTemplate).execute(mappedParams).use { result ->
-                newFile.outputStream().use { fos ->
-                    result.copyTo(fos)
+                val mappedParams = params.mapValues { it.value.get() }
+
+                templateInitialisation.engineFactory.create(rawTemplate).execute(mappedParams).use { result ->
+                    newFile.outputStream().use { fos ->
+                        result.copyTo(fos)
+                    }
                 }
             }
         }
     }
-
-
 }
 
 fun RoutinesBuilder.newFileFromTemplate(block: NewFileFromTemplateRoutine.() -> Unit): Routine<Unit> {

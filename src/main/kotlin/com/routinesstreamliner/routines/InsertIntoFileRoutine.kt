@@ -1,9 +1,10 @@
 package com.routinesstreamliner.routines
 
-import com.routinesstreamliner.ParamValue
 import com.routinesstreamliner.Routine
 import com.routinesstreamliner.RoutinesBuilder
-import java.io.*
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
 
 class InsertIntoFileRoutine : Routine.Builder<Unit>() {
 
@@ -101,34 +102,6 @@ interface InsertionTarget {
 
                 originalFile.delete()
                 copyFile.renameTo(originalFile)
-            }
-        }
-    }
-}
-
-interface InsertFromSource {
-    fun inputStream(): InputStream
-
-    companion object {
-        fun sourceFromText(text: () -> String): InsertFromSource {
-            return object : InsertFromSource {
-                private val body: () -> String = text
-                override fun inputStream() = ByteArrayInputStream(body().toByteArray())
-            }
-        }
-
-        fun sourceFromTemplate(
-            templateInput: InputStream,
-            templateParams: () -> Map<String, ParamValue<String>>,
-            templatesEngineFactory: TemplatesEngineFactory<String> = TemplatesEngineFactory.mustacheFactory()
-        ): InsertFromSource {
-            return object : InsertFromSource {
-                private val params = templateParams
-                private val templatesEngine = templatesEngineFactory.create(templateInput)
-
-                override fun inputStream(): InputStream {
-                    return templatesEngine.execute(params().mapValues { it.value.get() })
-                }
             }
         }
     }

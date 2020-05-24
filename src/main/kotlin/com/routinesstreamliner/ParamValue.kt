@@ -31,13 +31,29 @@ class ParamValue<out T : Any>(
     companion object {
 
         fun <T : Any> constant(value: T): ParamValue<T> {
-            return ParamValue { value }
+            return ParamValue { value }.eagerInit()
         }
 
-        fun stdin(hint: String = "Input value: "): ParamValue<String> {
+        /**
+         * @param validate - validator, should throw a Throwable if validation fails.
+         * Use [require] with lazyMessage to add validation rules.
+         * If validation fails, it will loop till validation passes:  get input, validate input.
+         */
+        fun stdin(hint: String = "Input value: ", validate: (String) -> Unit = {}): ParamValue<String> {
             return ParamValue {
-                print("\n" + hint)
-                readLine()!!
+                var input: String
+                var validation: Throwable?
+
+                do {
+                    print("\n$hint ")
+                    input = readLine()!!
+
+                    validation = runCatching {
+                        validate(input)
+                    }.exceptionOrNull()
+                } while (validation != null)
+
+                input
             }
         }
     }
