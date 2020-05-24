@@ -3,16 +3,19 @@
 @file:DependsOn("com.eymar:routines-streamline:0.0.7")
 
 import com.routinesstreamliner.*
+import com.routinesstreamliner.routines.*
 
 routines(args = args) {
 
-    val componentName = paramFromStdin(hint = "Enter component name: ")
+    val componentName = ParamValue.stdin(hint = "Enter component name: ")
 
     val className = componentName.map {
         "${it}Component"
     }
 
     val newClass = newFileFromTemplate {
+        friendlyName { "New Class" }
+
         templateParams {
             this["ClassName"] = className
         }
@@ -29,6 +32,8 @@ routines(args = args) {
     }
 
     val newTests = newFileFromTemplate {
+        friendlyName { "Tests for New Class" }
+
         val testClassName = className.map {
             "${it}Tests"
         }
@@ -48,7 +53,9 @@ routines(args = args) {
     }
 
     val appendFile = insertIntoFile {
-        val templateName = paramFromStdin(hint = "Template Name value = ")
+        friendlyName { "Append file Test.txt" }
+
+        val templateName =  ParamValue.stdin(hint = "Template Name value = ")
 
         executableIf { templateName.map { it.length > 1 } }
 

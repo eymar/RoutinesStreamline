@@ -1,8 +1,11 @@
-package com.routinesstreamliner
+package com.routinesstreamliner.routines
 
+import com.routinesstreamliner.ParamValue
+import com.routinesstreamliner.Routine
+import com.routinesstreamliner.RoutinesBuilder
 import java.io.*
 
-class InsertIntoFileRoutine : Routine() {
+class InsertIntoFileRoutine : Routine.Builder<Unit>() {
 
     private lateinit var insertFromSource: () -> InsertFromSource
 
@@ -30,7 +33,30 @@ class InsertIntoFileRoutine : Routine() {
         this.appendComment = comment
     }
 
-    override fun execute() {
+    override fun build(): Routine<Unit> {
+        val insertFromSource = insertFromSource
+        val insertionTarget = insertionTarget
+        val appendComment = appendComment
+
+        if (friendlyName == null) {
+            friendlyName = this.javaClass.simpleName
+        }
+
+        routineBody = {
+            execute(
+                insertFromSource = insertFromSource,
+                insertionTarget = insertionTarget,
+                appendComment = appendComment
+            )
+        }
+        return super.build()
+    }
+
+    private fun execute(
+        insertFromSource: () -> InsertFromSource,
+        insertionTarget: InsertionTarget,
+        appendComment: String?
+    ) {
         insertFromSource().inputStream().use { inputStream ->
             insertionTarget.useOutputStream { outputStream ->
                 appendComment.takeIf { it != null }?.also {
@@ -108,8 +134,8 @@ interface InsertFromSource {
     }
 }
 
-fun Routines.insertIntoFile(block: InsertIntoFileRoutine.() -> Unit): InsertIntoFileRoutine {
-    val r = InsertIntoFileRoutine().apply(block)
+fun RoutinesBuilder.insertIntoFile(block: InsertIntoFileRoutine.() -> Unit): Routine<Unit> {
+    val r = InsertIntoFileRoutine().apply(block).build()
     this.addRoutine(r)
     return r
 }

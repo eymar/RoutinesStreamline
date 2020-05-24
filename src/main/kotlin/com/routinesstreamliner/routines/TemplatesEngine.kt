@@ -1,4 +1,4 @@
-package com.routinesstreamliner
+package com.routinesstreamliner.routines
 
 import com.github.mustachejava.DefaultMustacheFactory
 import com.github.mustachejava.MustacheFactory
@@ -38,8 +38,10 @@ interface TemplatesEngineFactory<T> {
     fun create(source: InputStream): TemplatesEngine<T>
 
     companion object {
-        fun <T> mustacheFactory(): TemplatesEngineFactory<T> = object : TemplatesEngineFactory<T> {
-            override fun create(source: InputStream) = TemplatesEngine.createMustacheEngine<T>(source)
+        fun <T> mustacheFactory(): TemplatesEngineFactory<T> = object :
+            TemplatesEngineFactory<T> {
+            override fun create(source: InputStream) =
+                TemplatesEngine.createMustacheEngine<T>(source)
         }
 
         fun <T> custom(factoryFunction: (InputStream) -> TemplatesEngine<T>): TemplatesEngineFactory<T> {

@@ -1,5 +1,7 @@
-package com.routinesstreamliner
+package com.routinesstreamliner.routines
 
+import com.routinesstreamliner.ParamValue
+import com.routinesstreamliner.RoutinesBuilder
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -17,15 +19,20 @@ class InsertIntoFileRoutineTest {
 
     @Test
     fun `should add itself to Routines group when ext fun called`() {
-        val routines = Routines()
+        val routinesBuilder = RoutinesBuilder()
 
-        routines.insertIntoFile {
+        val randomName = System.nanoTime().toString()
+
+        routinesBuilder.insertIntoFile {
+            friendlyName { randomName }
             appendFile(path = "")
             insertFrom { InsertFromSource.sourceFromText { "" } }
         }
 
-        assertTrue(routines.routinesGroups.size == 1)
-        assertTrue(routines.routinesGroups.first().routines.first() is InsertIntoFileRoutine)
+        val routines = routinesBuilder.build()
+
+        assertTrue(routines.groups.size == 1)
+        assertTrue(routines.groups.first().routines.first().friendlyName == randomName)
     }
 
     @Test
@@ -38,7 +45,7 @@ class InsertIntoFileRoutineTest {
         val r = InsertIntoFileRoutine().apply {
             appendFile(path = file.absolutePath)
             insertFrom { InsertFromSource.sourceFromText { appendText } }
-        }
+        }.build()
 
         r.execute()
 
@@ -65,7 +72,7 @@ class InsertIntoFileRoutineTest {
             appendFile(path = file.absolutePath)
             insertFrom { InsertFromSource.sourceFromText { appendText } }
             insertionComment(comment = comment)
-        }
+        }.build()
 
         r.execute()
 
@@ -90,7 +97,7 @@ class InsertIntoFileRoutineTest {
         val r = InsertIntoFileRoutine().apply {
             prependFile(file.absolutePath)
             insertFrom { InsertFromSource.sourceFromText { prependText } }
-        }
+        }.build()
 
         r.execute()
 
