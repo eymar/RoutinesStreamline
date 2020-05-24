@@ -1,5 +1,7 @@
-package com.routinesstreamliner
+package com.routinesstreamliner.routines
 
+import com.routinesstreamliner.ParamValue
+import com.routinesstreamliner.RoutinesBuilder
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -16,17 +18,21 @@ class InsertIntoFileRoutineTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `should add itself to Routines list when ext fun called`() {
-        val routines = Routines()
-        assertTrue(routines.routines.isEmpty())
+    fun `should add itself to Routines group when ext fun called`() {
+        val routinesBuilder = RoutinesBuilder()
 
-        routines.insertIntoFile {
+        val randomName = System.nanoTime().toString()
+
+        routinesBuilder.insertIntoFile {
+            friendlyName { randomName }
             appendFile(path = "")
-            insertFrom(source = InsertFromSource.sourceFromText { "" })
+            insertFrom { InsertFromSource.sourceFromText { "" } }
         }
 
-        assertTrue(routines.routines.size == 1)
-        assertTrue(routines.routines.first() is InsertIntoFileRoutine)
+        val routines = routinesBuilder.build()
+
+        assertTrue(routines.groups.size == 1)
+        assertTrue(routines.groups.first().routines.first().friendlyName == randomName)
     }
 
     @Test
@@ -38,8 +44,8 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             appendFile(path = file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { appendText })
-        }
+            insertFrom { InsertFromSource.sourceFromText { appendText } }
+        }.build()
 
         r.execute()
 
@@ -64,9 +70,9 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             appendFile(path = file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { appendText })
+            insertFrom { InsertFromSource.sourceFromText { appendText } }
             insertionComment(comment = comment)
-        }
+        }.build()
 
         r.execute()
 
@@ -90,8 +96,8 @@ class InsertIntoFileRoutineTest {
 
         val r = InsertIntoFileRoutine().apply {
             prependFile(file.absolutePath)
-            insertFrom(source = InsertFromSource.sourceFromText { prependText })
-        }
+            insertFrom { InsertFromSource.sourceFromText { prependText } }
+        }.build()
 
         r.execute()
 
