@@ -12,7 +12,7 @@ class TemplateInitialisation private constructor(
 
     class Builder {
         private lateinit var inputStream: () -> InputStream
-        private lateinit var populateParams: HashMap<String, ParamValue<String>>.() -> Unit
+        private var populateParams: HashMap<String, ParamValue<String>>.() -> Unit = {}
         private var engineFactory: TemplatesEngineFactory<String> = TemplatesEngineFactory.mustacheFactory()
 
         fun templateSource(inputStream: () -> InputStream) {

@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 class RoutineBuilderTests {
 
     @Test
-    fun `builder should create a routine with given fields`() {
+    fun `builder should create a routine with given fields`() = testRoutinesContext {
         val r1p1 = ParamValue.constant(1)
         val r1p2 = ParamValue.constant("1")
         val r1executable = ParamValue.constant(true)
@@ -31,7 +31,7 @@ class RoutineBuilderTests {
     }
 
     @Test
-    fun `by default builder should create a routine with willExecute = true, and default friendlyName`() {
+    fun `by default builder should create a routine with willExecute = true, and default friendlyName`() = testRoutinesContext {
         val r1body = { 0 }
 
         val r1 = Routine.Builder<Int>().apply {

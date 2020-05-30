@@ -1,26 +1,45 @@
 package com.routinesstreamliner
 
 class ParamValue<out T : Any>(
-    private val valueGetter: (() -> T)
+    valueGetter: (() -> T)
 ) {
+
+    init {
+        ParamsStore.getInstance().add(this, valueGetter)
+    }
 
     private lateinit var value: T
 
     fun get(): T = if (::value.isInitialized) {
         value
     } else {
-        value = valueGetter()
+        value = ParamsStore.getInstance().get(this).invoke()
         value
     }
 
     override fun toString(): String {
-        return value.toString()
+        return get().toString()
     }
 
-    fun <K : Any> map(transform: (T) -> K): ParamValue<K> {
+    fun <R : Any> map(transform: (T) -> R): ParamValue<R> {
         return ParamValue {
             transform(get())
         }
+    }
+
+    fun <K : Any, R: Any> zipWith(
+        z: ParamValue<K>,
+        f: (T, K) -> R
+    ): ParamValue<R> {
+        return ParamValue { f(this.get(), z.get()) }
+    }
+
+    fun <K1 : Any, K2 : Any, R : Any> zipWith(
+        z1: ParamValue<K1>,
+        z2: ParamValue<K2>,
+        f: (T, K1, K2) -> R
+    ): ParamValue<R> {
+        return ParamValue { f(this.get(), z1.get(), z2.get()) }
     }
 
     fun eagerInit(): ParamValue<T> {

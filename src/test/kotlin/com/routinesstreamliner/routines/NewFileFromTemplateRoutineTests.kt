@@ -2,6 +2,7 @@ package com.routinesstreamliner.routines
 
 import com.routinesstreamliner.ParamValue
 import com.routinesstreamliner.RoutinesBuilder
+import com.routinesstreamliner.testRoutinesContext
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -14,7 +15,7 @@ class NewFileFromTemplateRoutineTests {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `should create a new file with correct content from a template`() {
+    fun `should create a new file with correct content from a template`() = testRoutinesContext {
         val template = "Hello {{NAME}}"
 
         val templateFile = tempFolder.newFile("tmp1")
@@ -42,7 +43,7 @@ class NewFileFromTemplateRoutineTests {
     }
 
     @Test
-    fun `extension function should add a routine instance to all routines`() {
+    fun `extension function should add a routine instance to all routines`() = testRoutinesContext {
         val routines = RoutinesBuilder().apply {
             newFileFromTemplate {
                 friendlyName { "TestRoutineName1" }

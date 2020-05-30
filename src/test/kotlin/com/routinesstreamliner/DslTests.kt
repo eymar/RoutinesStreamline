@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 class DslTests {
 
     @Test
-    fun `should execute the default (all) routines group when input is 1`() {
+    fun `should execute the default (all) routines group when input is 1`() = testRoutinesContext {
         val input = "1\n" // 1 is an input for Default Group
         System.setIn(input.byteInputStream())
 
@@ -40,7 +40,7 @@ class DslTests {
     }
 
     @Test
-    fun `should execute only routines of a selected group`() {
+    fun `should execute only routines of a selected group`() = testRoutinesContext {
         val input = "2\n" // 2 is an input for custom group "g1"
         System.setIn(input.byteInputStream())
 
@@ -75,7 +75,7 @@ class DslTests {
     }
 
     @Test
-    fun `gn repeat mode, should execute the routines correct number of times`() {
+    fun `gn repeat mode, should execute the routines correct number of times`() = testRoutinesContext {
         val input = "2\n2\n1\n0\n" // 2 times for group "g1", 1 time for default (all) group, then 0 (quit)
         System.setIn(input.byteInputStream())
 

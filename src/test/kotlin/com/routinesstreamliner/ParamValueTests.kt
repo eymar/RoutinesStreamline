@@ -6,7 +6,7 @@ import kotlin.test.assertEquals
 class ParamValueTests {
 
     @Test
-    fun `should create a parameter value from stdin`() {
+    fun `should create a parameter value from stdin`() = testRoutinesContext {
         val input = "10\n".byteInputStream()
         System.setIn(input)
 
@@ -15,7 +15,7 @@ class ParamValueTests {
     }
 
     @Test
-    fun `should validate value from stdin and accept only a valid input`() {
+    fun `should validate value from stdin and accept only a valid input`() = testRoutinesContext {
         val input = "0\n-1\n1".byteInputStream()
         System.setIn(input)
 
