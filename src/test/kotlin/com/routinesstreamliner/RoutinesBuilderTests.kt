@@ -12,7 +12,7 @@ class RoutinesBuilderTests {
     }.build()
 
     @Test
-    fun `should create and add a group of all added routines`() {
+    fun `should create and add a group of all added routines`() = testRoutinesContext {
         val r1 = dumbRoutine { }
         val r2 = dumbRoutine { }
 
@@ -28,7 +28,7 @@ class RoutinesBuilderTests {
     }
 
     @Test
-    fun `should add all given groups and should add their routines to the global group`() {
+    fun `should add all given groups and should add their routines to the global group`() = testRoutinesContext {
         val r1 = dumbRoutine { }
         val r2 = dumbRoutine { }
 

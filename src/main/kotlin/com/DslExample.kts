@@ -16,13 +16,16 @@ routines(args = args) {
     val newClass = newFileFromTemplate {
         friendlyName { "New Class" }
 
-        templateParams {
-            this["ClassName"] = className
-        }
-
         executableIf { componentName.map { it.length > 1 } }
 
-        fromTemplate(path = "../../../../templates/ExampleTemplate.kt")
+        templateBuilder {
+            templateSourceFile {
+                "../../../../templates/ExampleTemplate.kt"
+            }
+            populateTemplateParams {
+                this["ClassName"] = className
+            }
+        }
 
         saveTo(path = className.map {
             "../generated/$it.kt"
@@ -37,17 +40,21 @@ routines(args = args) {
         val testClassName = className.map {
             "${it}Tests"
         }
-        templateParams {
-            this["TestClassName"] = testClassName
-        }
 
         executableIf { componentName.map { it.length > 1 } }
 
-        fromTemplate(path = "../../../../templates/ExampleTestsTemplate.kt")
+        templateBuilder {
+            templateSourceFile {
+                "../../../../templates/ExampleTestsTemplate.kt"
+            }
+            populateTemplateParams {
+                this["TestClassName"] = testClassName
+            }
+        }
 
-        saveTo(path = testClassName.map {
-            "../generated/$it.kt"
-        })
+        saveTo {
+            testClassName.map { "../generated/$it.kt" }
+        }
 
         dependsOn(className, componentName, testClassName)
     }
@@ -55,16 +62,20 @@ routines(args = args) {
     val appendFile = insertIntoFile {
         friendlyName { "Append file Test.txt" }
 
-        val templateName =  ParamValue.stdin(hint = "Template Name value = ")
+        val templateName = ParamValue.stdin(hint = "Template Name value = ")
 
         executableIf { templateName.map { it.length > 1 } }
 
         appendFile("Test.txt")
         insertFrom {
-            InsertFromSource.sourceFromTemplate(
-                templateInput = "Hello, {{name}}".toByteArray().inputStream(),
-                templateParams = { mapOf("name" to templateName) }
-            )
+            InsertFromSource.sourceFromTemplate {
+                templateSourceText {
+                    "Hello, {{NAME}}"
+                }
+                populateTemplateParams {
+                    this["NAME"] = templateName
+                }
+            }
         }
 
         dependsOn(templateName)

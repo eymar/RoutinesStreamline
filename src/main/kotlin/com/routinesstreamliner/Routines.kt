@@ -1,10 +1,10 @@
 package com.routinesstreamliner
 
-class Routines(
+class Routines internal constructor(
     val groups: List<RoutinesGroup>
 )
 
-class RoutinesBuilder {
+class RoutinesBuilder internal constructor() {
 
     private val routines = arrayListOf<Routine<*>>()
     private val groups = arrayListOf<RoutinesGroup>()
@@ -36,7 +36,9 @@ class RoutinesBuilder {
     }
 
     companion object {
-        fun create(block: RoutinesBuilder.() -> Unit): Routines {
+        internal fun create(
+            block: RoutinesBuilder.() -> Unit
+        ): Routines {
             return RoutinesBuilder().apply(block).build()
         }
     }

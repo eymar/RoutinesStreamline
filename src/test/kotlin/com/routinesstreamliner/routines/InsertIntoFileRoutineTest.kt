@@ -2,6 +2,7 @@ package com.routinesstreamliner.routines
 
 import com.routinesstreamliner.ParamValue
 import com.routinesstreamliner.RoutinesBuilder
+import com.routinesstreamliner.testRoutinesContext
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -18,7 +19,7 @@ class InsertIntoFileRoutineTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `should add itself to Routines group when ext fun called`() {
+    fun `should add itself to Routines group when ext fun called`() = testRoutinesContext {
         val routinesBuilder = RoutinesBuilder()
 
         val randomName = System.nanoTime().toString()
@@ -36,7 +37,7 @@ class InsertIntoFileRoutineTest {
     }
 
     @Test
-    fun `should add given text to the end of a file and keep the rest of file unchanged`() {
+    fun `should add given text to the end of a file and keep the rest of file unchanged`() = testRoutinesContext {
         val file = tempFolder.newFile("test1.txt")
         file.writeText(text = "Line 1\nLine 2\nLine 3")
 
@@ -61,7 +62,7 @@ class InsertIntoFileRoutineTest {
     }
 
     @Test
-    fun `should add given comment and text to the end of a file and keep the rest of file unchanged`() {
+    fun `should add given comment and text to the end of a file and keep the rest of file unchanged`() = testRoutinesContext {
         val file = tempFolder.newFile("test1.txt")
         file.writeText(text = "Line 1\nLine 2\nLine 3")
 
@@ -88,7 +89,7 @@ class InsertIntoFileRoutineTest {
     }
 
     @Test
-    fun `should add given text to the start of file and keep the rest of file unchanged`() {
+    fun `should add given text to the start of file and keep the rest of file unchanged`() = testRoutinesContext {
         val file = tempFolder.newFile("test1.txt")
         file.writeText(text = "Line 1\nLine 2\nLine 3")
 
@@ -113,16 +114,16 @@ class InsertIntoFileRoutineTest {
     }
 
     @Test
-    fun `should execute template and add its text to output`() {
+    fun `should execute template and add its text to output`() = testRoutinesContext {
         val baos = ByteArrayOutputStream()
         baos.write("First line\n".toByteArray())
 
-        val template = "Hello {{name}}!"
+        val template = "Hello {{NAME}}!"
 
-        val result = InsertFromSource.sourceFromTemplate(
-            templateInput = template.toByteArray().inputStream(),
-            templateParams = { mapOf("name" to ParamValue.constant("World")) }
-        ).inputStream().readBytes().let {
+        val result = InsertFromSource.sourceFromTemplate {
+            templateSource { template.toByteArray().inputStream() }
+            populateTemplateParams { this["NAME"] = ParamValue.constant("World") }
+        }.inputStream().readBytes().let {
             String(it)
         }
 
